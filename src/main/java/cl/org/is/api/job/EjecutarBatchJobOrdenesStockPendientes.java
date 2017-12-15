@@ -35,8 +35,8 @@ import java.util.Map;
  */
 public class EjecutarBatchJobOrdenesStockPendientes {
 
-	private static final int DIFF_HOY_FECHA_INI = 8;
-	private static final int DIFF_HOY_FECHA_FIN = 1;
+	private static final int DIFF_HOY_FECHA_INI = 1;
+	private static final int DIFF_HOY_FECHA_FIN = 0;
 	
 	private static final int FORMATO_FECHA_0 = 0;
 	private static final int FORMATO_FECHA_1 = 1;
@@ -168,7 +168,9 @@ public class EjecutarBatchJobOrdenesStockPendientes {
 			
 			Thread.sleep(60);
 			info("Pausa para eliminar  CUMPLIMIENTO sleep(60 seg)");
+			info("DELETE FROM ORDENES_STOCK_PENDIENTES WHERE 1 = 1 AND FECHA_CREACION > = '"+dFechaIni+" 00:00:00' AND FECHA_CREACION <= '"+dFechaFin+" 23:59:59'");
 			eliminar(dbconnOracle2,"DELETE FROM ORDENES_STOCK_PENDIENTES WHERE 1 = 1 AND FECHA_CREACION > = '"+dFechaIni+" 00:00:00' AND FECHA_CREACION <= '"+dFechaFin+" 23:59:59'");
+
 			commit(dbconnOracle2,"COMMIT"); 
 			
 			
@@ -181,7 +183,7 @@ public class EjecutarBatchJobOrdenesStockPendientes {
 			info("Pausa para consultar  CUMPLIMIENTO sleep(60 seg)");
 			
 			sb = new StringBuffer();
-			
+			//Query Ordernes pendiente de envio
 			sb.append("select  o.tc_order_id ||lpad(oli.tc_order_line_id,3,'0') as Distro_WMS,do_dtl_status,o.Order_Type as tipoorden,o.purchase_order_number as Pedido,oli.item_name as SKU,  (oli.order_qty - nvl(oli.shipped_qty,0))  as Cantidad_PENDIENTE,o.O_FACILITY_ALIAS_ID as bodega, TO_CHAR(o.Created_DTTM,'YYYY-MM-DD HH24:MI:SS')  as fecha_Creacion from orders o   inner join order_line_item oli on oli.order_id = o.order_id where (oli.order_qty - nvl(oli.shipped_qty,0)) > 0          and oli.do_dtl_status > 100         and oli.do_dtl_status <= 185  and o.do_status <> 190 and o.IS_CANCELLED <> 1 and o.Created_DTTM >= to_date('"+iFechaIni+" 00:00:00','DD-MM-YYYY HH24:MI:SS') and o.Created_DTTM <= to_date('"+iFechaFin+" 23:59:59','DD-MM-YYYY HH24:MI:SS') and o.Order_Type like 'Stock%'");
 			//sb.append("select  o.tc_order_id ||lpad(oli.tc_order_line_id,3,'0') as Distro_WMS,do_dtl_status,o.Order_Type as tipoorden,o.purchase_order_number as Pedido,oli.item_name as SKU,  (oli.order_qty - nvl(oli.shipped_qty,0))  as Cantidad_PENDIENTE,o.O_FACILITY_ALIAS_ID as bodega, o.Created_DTTM as fecha_Creacion from orders o   inner join order_line_item oli on oli.order_id = o.order_id where (oli.order_qty - nvl(oli.shipped_qty,0)) > 0          and oli.do_dtl_status > 100         and oli.do_dtl_status <= 185  and o.do_status <> 190 and o.IS_CANCELLED <> 1 and o.Created_DTTM >= to_date('"+"21/11/2017"+" 00:00:00','DD-MM-YYYY HH24:MI:SS') and o.Created_DTTM <= to_date('"+"21/11/2017"+" 23:59:59','DD-MM-YYYY HH24:MI:SS') and o.Order_Type like 'Stock%'");
 
@@ -348,10 +350,11 @@ public class EjecutarBatchJobOrdenesStockPendientes {
 		try {
 
 			sb = new StringBuffer();
+			//Enviados a tiendas despachados
 			sb.append("SELECT DISTINCT(STAT_CODE) FROM CARTON_HDR WHERE PKT_CTRL_NBR IN (SELECT PKT_CTRL_NBR From store_distro ");
 			sb.append("WHERE distro_nbr = '");
 			sb.append(Distro_WMS);
-			sb.append("') AND STAT_CODE = 90 and CREATE_DATE_TIME>SYSDATE-30");// 90 enviados a tiendas
+			sb.append("') AND STAT_CODE = 90 and CREATE_DATE_TIME>SYSDATE-30");// 90 enviados a tiendas despachados
 			info("[sb2]:"+sb);
 			pstmt = dbconnection.prepareStatement(sb.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -391,7 +394,7 @@ public class EjecutarBatchJobOrdenesStockPendientes {
 			sb.append("SELECT DISTINCT(STAT_CODE) FROM CARTON_HDR WHERE PKT_CTRL_NBR IN (SELECT PKT_CTRL_NBR From store_distro ");
 			sb.append("WHERE distro_nbr = '");
 			sb.append(Distro_WMS);
-			sb.append("') AND STAT_CODE = 90 and CREATE_DATE_TIME>SYSDATE-30");// 90 enviados a tiendas
+			sb.append("') AND STAT_CODE = 90 and CREATE_DATE_TIME>SYSDATE-30");// 90 enviados a tiendas estos son despachos      bus ac de eom pendiente de despacho 
 			info("[sb2]:"+sb);
 			pstmt = dbconnection.prepareStatement(sb.toString());
 			ResultSet rs = pstmt.executeQuery();
